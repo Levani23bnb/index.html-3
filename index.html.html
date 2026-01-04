@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <title>ArcGenesis | Next Gen Marketplace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Outfit', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            dark: '#0f172a',
+                            card: '#1e293b',
+                            accent: '#38bdf8'
+                        }
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #050505; color: white; overflow-x: hidden; }
+        .glass { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .glass-card { background: linear-gradient(180deg, rgba(30,41,59,0.7) 0%, rgba(15,23,42,0.9) 100%); border: 1px solid rgba(56, 189, 248, 0.1); }
+        .glass-card:hover { border-color: rgba(56, 189, 248, 0.5); box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
+        .gradient-text { background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-glow { background: linear-gradient(90deg, #0ea5e9, #6366f1); box-shadow: 0 0 15px rgba(14, 165, 233, 0.4); transition: 0.3s; }
+        .btn-glow:hover { box-shadow: 0 0 25px rgba(14, 165, 233, 0.6); transform: scale(1.02); }
+    </style>
+</head>
+<body class="relative min-h-screen flex flex-col">
+
+    <!-- Background Effects -->
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob"></div>
+        <div class="absolute top-0 right-1/4 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute -bottom-8 left-1/3 w-96 h-96 bg-cyan-600 rounded-full mix-blend-multiply filter blur-[128px] opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 glass border-b-0">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer">
+                <!-- Logo Icon -->
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-bold text-white text-lg">A</div>
+                <span class="text-2xl font-bold tracking-wide">Arc<span class="text-cyan-400">Gen</span></span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button id="connectBtn" onclick="connectWallet()" class="glass hover:bg-white/10 text-white px-6 py-2.5 rounded-full font-semibold transition border border-white/10">
+                    Connect Wallet
+                </button>
+                <div id="walletInfo" class="hidden items-center gap-2 glass px-4 py-2 rounded-full border border-green-500/30">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span id="walletAddress" class="font-mono text-sm text-cyan-200"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-32 pb-20 px-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Hero / Create Section -->
+        <div class="grid lg:grid-cols-2 gap-16 items-center mb-24">
+            <div>
+                <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6">
+                    Discover & Collect <br>
+                    <span class="gradient-text">Rare Digital Art</span>
+                </h1>
+                <p class="text-gray-400 text-lg mb-8 max-w-lg leading-relaxed">
+                    The premier marketplace on ARC Testnet. Mint, buy, and sell NFTs instantly using USDC with zero friction.
+                </p>
+                
+                <!-- Create Form -->
+                <div class="glass p-6 rounded-2xl relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-400 to-blue-600"></div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Create New Item</h3>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <input type="text" id="nftUrl" placeholder="Paste Image URL (Imgur, etc.)" 
+                            class="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition">
+                        </div>
+                        <div class="flex gap-4">
+                            <input type="number" id="nftPrice" placeholder="Price (USDC)" 
+                            class="w-1/3 bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none transition">
+                            
+                            <button onclick="createNFT()" id="createBtn" class="w-2/3 btn-glow rounded-xl font-bold text-white text-lg tracking-wide">
+                                Mint & List
+                            </button>
+                        </div>
+                    </div>
+                    <p id="status" class="mt-4 text-sm font-medium h-5 text-cyan-400"></p>
+                </div>
+            </div>
+
+            <!-- Hero Image / Preview -->
+            <div class="hidden lg:block relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-3xl blur-2xl opacity-30 transform rotate-6"></div>
+                <div class="relative rounded-3xl overflow-hidden shadow-2xl border border-gray-700">
+                    <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop" class="w-full h-full object-cover">
+                    <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/80 to-transparent">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-gray-400 text-sm">Featured Collection</p>
+                                <h3 class="text-2xl font-bold text-white">CyberPunk #001</h3>
+                            </div>
+                            <div class="glass px-4 py-2 rounded-lg">
+                                <p class="text-xs text-gray-400 uppercase">Current Bid</p>
+                                <p class="font-bold text-cyan-400">1,200 USDC</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Marketplace Feed -->
+        <div class="flex items-center justify-between mb-10">
+            <h2 class="text-3xl font-bold flex items-center gap-3">
+                <span class="w-2 h-8 bg-cyan-500 rounded-full"></span>
+                Live Listings
+            </h2>
+            <button onclick="loadMarketItems()" class="text-gray-400 hover:text-cyan-400 transition flex items-center gap-2 text-sm font-semibold uppercase tracking-wider">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Refresh
+            </button>
+        </div>
+
+        <div id="marketGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Cards will be injected here -->
+            <div class="col-span-full py-20 text-center">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500 mb-4"></div>
+                <p class="text-gray-500">Connecting to ARC Network...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ******* CONFIGURATION *******
+        // 1. შენი კონტრაქტის მისამართი (წინა ნაბიჯიდან)
+        const MARKET_CONTRACT_ADDRESS = "0x8e6fD58c5FB124BB884BF2888a3D826Fdb302C1F"; 
+        
+        // 2. USDC კონტრაქტი (შენი მოცემული)
+        const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
+        // *****************************
+
+        const MARKET_ABI = [
+            "function createToken(string memory tokenURI, uint256 price) public returns (uint256)",
+            "function fetchMarketItems() public view returns (tuple(uint256 tokenId, address seller, address owner, uint256 price, bool sold)[])",
+            "function createMarketSale(uint256 tokenId) public",
+            "function tokenURI(uint256 tokenId) public view returns (string memory)"
+        ];
+
+        const USDC_ABI = [
+            "function approve(address spender, uint256 amount) external returns (bool)",
+            "function allowance(address owner, address spender) external view returns (uint256)"
+        ];
+
+        let provider, signer, marketContract, usdcContract;
+
+        async function connectWallet() {
+            if (!window.ethereum) return alert("Please install MetaMask!");
+            try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+
+                document.getElementById("connectBtn").style.display = 'none';
+                const wInfo = document.getElementById("walletInfo");
+                wInfo.classList.remove("hidden");
+                wInfo.classList.add("flex");
+                document.getElementById("walletAddress").innerText = address.slice(0,5) + "..." + address.slice(-4);
+
+                marketContract = new ethers.Contract(MARKET_CONTRACT_ADDRESS, MARKET_ABI, signer);
+                usdcContract = new ethers.Contract(USDC_ADDRESS, USDC_ABI, signer);
+                
+                loadMarketItems();
+
+            } catch (e) { console.error(e); }
+        }
+
+        async function createNFT() {
+            if (!marketContract) return alert("Please connect wallet first");
+            
+            const url = document.getElementById("nftUrl").value;
+            const priceVal = document.getElementById("nftPrice").value;
+            const btn = document.getElementById("createBtn");
+            const status = document.getElementById("status");
+
+            if (!url || !priceVal) {
+                status.innerText = "⚠️ Fill all fields!";
+                status.className = "mt-4 text-sm font-medium h-5 text-red-400";
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-pulse">Minting...</span>`;
+                status.innerText = "Wait for wallet confirmation...";
+                status.className = "mt-4 text-sm font-medium h-5 text-yellow-400";
+
+                const priceWei = ethers.parseEther(priceVal);
+
+                const tx = await marketContract.createToken(url, priceWei);
+                status.innerText = "Transaction sent... waiting for block.";
+                await tx.wait();
+
+                status.innerText = "✅ Successfully Listed!";
+                status.className = "mt-4 text-sm font-medium h-5 text-green-400";
+                
+                document.getElementById("nftUrl").value = "";
+                document.getElementById("nftPrice").value = "";
+                loadMarketItems();
+                
+            } catch (err) {
+                console.error(err);
+                status.innerText = "Error: Transaction failed";
+                status.className = "mt-4 text-sm font-medium h-5 text-red-500";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Mint & List";
+            }
+        }
+
+        async function loadMarketItems() {
+            if (!marketContract) return;
+            const grid = document.getElementById("marketGrid");
+            
+            try {
+                const data = await marketContract.fetchMarketItems();
+                grid.innerHTML = "";
+                
+                if (data.length === 0) {
+                    grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-600 font-bold text-xl">No items yet. Be the first to mint! 🚀</div>';
+                    return;
+                }
+
+                for (let item of data) {
+                    const priceUSDC = ethers.formatEther(item.price);
+                    let img = "https://via.placeholder.com/400x400/1e293b/38bdf8?text=No+Image";
+                    
+                    try {
+                        const uri = await marketContract.tokenURI(item.tokenId);
+                        if(uri.startsWith("http")) img = uri;
+                    } catch(e){}
+
+                    const el = document.createElement("div");
+                    el.className = "glass-card rounded-2xl overflow-hidden flex flex-col group relative transition-all duration-300";
+                    el.innerHTML = `
+                        <div class="h-64 bg-gray-900 relative overflow-hidden">
+                            <img src="${img}" class="w-full h-full object-cover transition duration-700 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition duration-300"></div>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-white group-hover:text-cyan-400 transition">ArcNFT #${item.tokenId}</h3>
+                                <span class="bg-gray-800 text-xs text-gray-400 px-2 py-1 rounded border border-gray-700">ERC-721</span>
+                            </div>
+                            <p class="text-xs text-gray-500 font-mono mb-4">Seller: <span class="text-gray-300">${item.seller.slice(0,4)}...${item.seller.slice(-4)}</span></p>
+                            
+                            <div class="mt-auto flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
+                                <div>
+                                    <p class="text-[10px] text-gray-400 uppercase font-bold tracking-wider mb-1">Price</p>
+                                    <p class="text-white font-bold text-lg">${priceUSDC} <span class="text-sm text-cyan-500">USDC</span></p>
+                                </div>
+                                <button onclick="buyNFT(${item.tokenId}, '${priceUSDC}')" class="bg-white hover:bg-cyan-400 hover:text-white text-black font-bold px-5 py-2 rounded-lg transition-all shadow-lg transform hover:-translate-y-1">
+                                    Buy
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function buyNFT(tokenId, priceStr) {
+            if (!marketContract || !usdcContract) return alert("Connect Wallet first!");
+            
+            try {
+                const priceWei = ethers.parseEther(priceStr);
+                const userAddress = await signer.getAddress();
+
+                // Check Allowance
+                const allowance = await usdcContract.allowance(userAddress, MARKET_CONTRACT_ADDRESS);
+                
+                if (allowance < priceWei) {
+                    const confirmApprove = confirm(`Need to Approve ${priceStr} USDC first. Proceed?`);
+                    if (!confirmApprove) return;
+
+                    const txApprove = await usdcContract.approve(MARKET_CONTRACT_ADDRESS, priceWei);
+                    alert("Approving USDC... Please wait for confirmation.");
+                    await txApprove.wait();
+                }
+
+                // Buy
+                const confirmBuy = confirm(`Confirm purchase of NFT #${tokenId} for ${priceStr} USDC?`);
+                if (!confirmBuy) return;
+
+                const txBuy = await marketContract.createMarketSale(tokenId);
+                alert("Processing purchase... This may take a moment.");
+                await txBuy.wait();
+                
+                alert("🎉 Purchase Successful! Check your wallet.");
+                loadMarketItems();
+
+            } catch (err) {
+                console.error(err);
+                alert("Error: " + (err.reason || "See console for details"));
+            }
+        }
+    </script>
+</body>
+</html>
